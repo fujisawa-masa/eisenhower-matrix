@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アイゼンハワー・マトリックス</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><rect width='80' height='80' rx='18' fill='%231e293b'/><rect x='12' y='12' width='26' height='26' rx='4' fill='%23f97316' opacity='0.9'/><rect x='42' y='12' width='26' height='26' rx='4' fill='%2394a3b8' opacity='0.5'/><rect x='12' y='42' width='26' height='26' rx='4' fill='%2394a3b8' opacity='0.35'/><rect x='42' y='42' width='26' height='26' rx='4' fill='%2394a3b8' opacity='0.2'/><circle cx='25' cy='25' r='5' fill='%23fff' opacity='0.9'/><line x1='40' y1='8' x2='40' y2='72' stroke='%2394a3b8' stroke-width='1' opacity='0.4'/><line x1='8' y1='40' x2='72' y2='40' stroke='%2394a3b8' stroke-width='1' opacity='0.4'/></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f2ed;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+:root{
+  --surface-0:#f4f2ed;--surface-1:#eceae4;--surface-2:#ffffff;
+  --text-primary:#1a1a18;--text-secondary:#5a5a55;--text-muted:#9a9a94;
+  --border:rgba(0,0,0,0.1);--border-strong:rgba(0,0,0,0.18);
+  --radius:8px
+}
+@media(prefers-color-scheme:dark){
+  :root{--surface-0:#1a1a18;--surface-1:#242420;--surface-2:#2e2e2a;--text-primary:#f0ede8;--text-secondary:#aaa89f;--text-muted:#6a6a64;--border:rgba(255,255,255,0.1);--border-strong:rgba(255,255,255,0.18)}
+  .q1{background:#1a1210!important}.q2{background:#0f151a!important}.q3{background:#1a1600!important}.q4{background:#0f1a10!important}
+  .q1 .q-count{background:#4a1b0c!important;color:#f0997b!important}
+  .q2 .q-count{background:#042c53!important;color:#85b7eb!important}
+  .q3 .q-count{background:#412402!important;color:#ef9f27!important}
+  .q4 .q-count{background:#173404!important;color:#97c459!important}
+  .modal{background:#2e2e2a!important}
+  .form-group input,.form-group select{background:#242420!important;color:#f0ede8!important;border-color:rgba(255,255,255,0.18)!important}
+  .btn-cancel{background:#242420!important;color:#aaa89f!important}
+  .login-card{background:#2e2e2a!important;border-color:rgba(255,255,255,0.1)!important}
+}
+/* ── Login Screen ── */
+.login-screen{display:flex;flex:1;align-items:center;justify-content:center;background:var(--surface-0)}
+.login-card{background:#fff;border:0.5px solid var(--border);border-radius:16px;padding:36px 32px;width:360px;max-width:92vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.login-logo{margin-bottom:20px}
+.login-title{font-size:18px;font-weight:600;color:var(--text-primary);margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.5}
+.ms-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 20px;border-radius:var(--radius);border:0.5px solid #d0d0d0;background:#fff;color:#1a1a18;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background 0.15s,border-color 0.15s}
+.ms-btn:hover{background:#f5f5f5;border-color:#bbb}
+.google-btn{border-color:#dadce0}
+.google-btn:hover{background:#f8f9fa;border-color:#bbb}
+.ms-logo{width:20px;height:20px;flex-shrink:0}
+.login-note{font-size:11px;color:var(--text-muted);margin-top:16px;line-height:1.5}
+/* ── Sync status ── */
+.sync-indicator{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);padding:0 4px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#97c459;flex-shrink:0}
+.sync-dot.syncing{background:#ef9f27;animation:pulse 1s infinite}
+.sync-dot.error{background:#e24b4a}
+.sync-dot.offline{background:#9a9a94}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface-2);border-bottom:0.5px solid var(--border);flex-shrink:0}
+.topbar h1{font-size:15px;font-weight:500;color:var(--text-primary)}
+.topbar .subtitle{font-size:11px;color:var(--text-muted)}
+.topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.user-chip{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:20px;border:0.5px solid var(--border-strong);background:var(--surface-1);cursor:pointer;font-size:12px;color:var(--text-secondary)}
+.user-chip:hover{background:var(--surface-0)}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:#1a73e8;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.icon-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-2);color:var(--text-secondary);cursor:pointer;transition:background 0.15s;font-size:16px;position:relative}
+.icon-btn:hover{background:var(--surface-1)}
+.notif-badge{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#e24b4a;display:none;border:1.5px solid var(--surface-2)}
+.notif-badge.show{display:block}
+.add-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);border:none;background:#1a73e8;color:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s;font-family:inherit}
+.add-btn:hover{background:#1557b0}
+/* ── Axes ── */
+.axis-x{display:flex;justify-content:space-between;padding:4px 18px 4px 46px;background:var(--surface-1);border-bottom:0.5px solid var(--border);flex-shrink:0}
+.axis-x span{font-size:11px;color:var(--text-muted);font-weight:500}
+.main-area{display:flex;flex:1;overflow:hidden}
+.axis-y{display:flex;flex-direction:column;justify-content:space-around;padding:8px 0;background:var(--surface-1);border-right:0.5px solid var(--border);flex-shrink:0;width:28px}
+.axis-y span{font-size:10px;color:var(--text-muted);font-weight:500;writing-mode:vertical-lr;transform:rotate(0deg);text-align:center;letter-spacing:0.04em}
+/* ── Matrix ── */
+.matrix{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;flex:1;overflow:hidden}
+.quadrant{display:flex;flex-direction:column;border:0.5px solid var(--border);overflow:hidden}
+.q-header{padding:9px 12px 7px;flex-shrink:0;display:flex;align-items:center;gap:8px}
+.q-action{font-size:11px;opacity:0.75;font-weight:500}
+.q-count{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;margin-left:auto}
+.q-body{flex:1;overflow-y:auto;padding:4px 8px 8px;display:flex;flex-direction:column;gap:5px}
+.q-body::-webkit-scrollbar{width:4px}
+.q-body::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px}
+.q1{background:#fff8f6}.q1 .q-header{border-bottom:2px solid #f09575}.q1 .q-action{color:#d85a30}.q1 .q-count{background:#faece7;color:#993c1d}
+.q2{background:#f6fbff}.q2 .q-header{border-bottom:2px solid #85b7eb}.q2 .q-action{color:#378add}.q2 .q-count{background:#e6f1fb;color:#185fa5}
+.q3{background:#fffcf5}.q3 .q-header{border-bottom:2px solid #ef9f27}.q3 .q-action{color:#ba7517}.q3 .q-count{background:#faeeda;color:#854f0b}
+.q4{background:#f6fdf8}.q4 .q-header{border-bottom:2px solid #97c459}.q4 .q-action{color:#639922}.q4 .q-count{background:#eaf3de;color:#3b6d11}
+/* ── Task Card ── */
+.task-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:8px;padding:7px 9px;display:flex;align-items:flex-start;gap:7px;cursor:grab;transition:border-color 0.15s,transform 0.1s,box-shadow 0.15s}
+.task-card:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.task-card.dragging{opacity:0.4;cursor:grabbing}
+.task-card.overdue{border-left:3px solid #e24b4a}
+.check-btn{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:transparent}
+.check-btn:hover{border-color:var(--text-secondary)}
+.check-btn i{display:none;font-size:9px;color:#fff}
+.task-info{flex:1;min-width:0}
+.task-text{font-size:13px;color:var(--text-primary);line-height:1.4;word-break:break-word}
+.task-meta{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center}
+.task-date{font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:2px}
+.overdue-label{font-size:10px;color:#e24b4a;font-weight:500;display:flex;align-items:center;gap:2px}
+.task-actions{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity 0.15s}
+.task-card:hover .task-actions{opacity:1}
+.task-btn{background:none;border:0.5px solid transparent;cursor:pointer;font-size:11px;padding:3px 6px;border-radius:5px;line-height:1.4;font-family:inherit;transition:all 0.15s;white-space:nowrap}
+.task-btn-edit{color:var(--text-secondary)}.task-btn-edit:hover{background:var(--surface-1);border-color:var(--border-strong)}
+.task-btn-complete{color:#3b6d11;border-color:#97c459}.task-btn-complete:hover{background:#eaf3de}
+.task-btn-del{color:#a32d2d}.task-btn-del:hover{background:#fcebeb;border-color:#f7c1c1}
+.empty{font-size:12px;color:var(--text-muted);text-align:center;padding:18px 8px;font-style:italic}
+.drop-highlight{outline:2px dashed var(--border-strong);outline-offset:-4px}
+/* ── Bottom bar ── */
+.bottom-bar{display:flex;align-items:center;gap:16px;padding:5px 18px 5px 46px;background:var(--surface-1);border-top:0.5px solid var(--border);flex-shrink:0}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)}
+.legend-dot{width:7px;height:7px;border-radius:50%}
+/* ── Completed Panel ── */
+.completed-panel{flex-shrink:0;border-top:0.5px solid var(--border);background:var(--surface-1);max-height:220px;display:flex;flex-direction:column}
+.completed-header{display:flex;align-items:center;gap:8px;padding:7px 16px 7px 46px;cursor:pointer;user-select:none;flex-shrink:0}
+.completed-header:hover{background:var(--surface-0)}
+.completed-title{font-size:12px;font-weight:500;color:var(--text-secondary);flex:1}
+.completed-count{font-size:11px;padding:1px 7px;border-radius:10px;background:var(--surface-0);color:var(--text-muted);border:0.5px solid var(--border)}
+.completed-toggle{font-size:13px;color:var(--text-muted);transition:transform 0.2s}
+.completed-toggle.open{transform:rotate(180deg)}
+.completed-body{overflow-y:auto;padding:4px 16px 8px 46px;display:flex;flex-direction:column;gap:5px}
+.completed-body::-webkit-scrollbar{width:4px}
+.completed-body::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px}
+.completed-row{display:flex;align-items:flex-start;gap:10px;padding:6px 10px;background:var(--surface-2);border:0.5px solid var(--border);border-radius:7px;opacity:0.75}
+.completed-row:hover{opacity:1}
+.completed-check{width:15px;height:15px;border-radius:50%;background:#639922;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center}
+.completed-check i{font-size:9px;color:#fff}
+.completed-info{flex:1;min-width:0}
+.completed-text{font-size:12px;color:var(--text-secondary);text-decoration:line-through;line-height:1.4;word-break:break-word}
+.completed-meta{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap}
+.completed-date{font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:3px}
+.completed-q-badge{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:500}
+.cq1{background:#faece7;color:#993c1d}.cq2{background:#e6f1fb;color:#185fa5}.cq3{background:#faeeda;color:#854f0b}.cq4{background:#eaf3de;color:#3b6d11}
+.completed-restore{background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);padding:2px 5px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.completed-restore:hover{background:var(--surface-1);color:var(--text-primary)}
+.cat-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;letter-spacing:0.03em;flex-shrink:0}
+.cat-work{background:#e8f0fe;color:#1a56cc}
+.cat-private{background:#fce8f3;color:#b5179e}
+.cat-family{background:#fff3e0;color:#e65100}
+.cat-other{background:#f0f0f0;color:#555}
+@media(prefers-color-scheme:dark){
+  .cat-work{background:#1a2a4a;color:#7aaaf7}
+  .cat-private{background:#3a1a30;color:#f4a0dc}
+  .cat-family{background:#3a2000;color:#ffb74d}
+  .cat-other{background:#2a2a2a;color:#aaa}
+}
+/* ── Modals ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface-2);border-radius:14px;border:0.5px solid var(--border);padding:22px;width:380px;max-width:95vw;box-shadow:0 16px 48px rgba(0,0,0,0.18)}
+.modal h2{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:16px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.form-group input,.form-group select{width:100%;padding:8px 11px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-1);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s}
+.form-group input:focus,.form-group select:focus{border-color:#1a73e8;box-shadow:0 0 0 3px rgba(26,115,232,0.1)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{padding:7px 16px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-1);color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit}
+.btn-cancel:hover{background:var(--surface-0)}
+.btn-add{padding:7px 16px;border-radius:var(--radius);border:none;background:#1a73e8;color:#fff;font-size:13px;cursor:pointer;font-weight:500;font-family:inherit}
+.btn-add:hover{background:#1557b0}
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#f0ede8;padding:11px 15px;border-radius:10px;font-size:13px;display:flex;align-items:flex-start;gap:9px;max-width:300px;z-index:300;opacity:0;transform:translateY(8px);transition:opacity 0.2s,transform 0.2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast i{font-size:16px;flex-shrink:0;margin-top:1px}
+.toast-title{font-weight:500;font-size:13px}
+.toast-msg{font-size:11px;color:#94a3b8;margin-top:2px;line-height:1.4}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="48" height="48" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <rect width="80" height="80" rx="18" fill="#1e293b"/>
+        <rect x="12" y="12" width="26" height="26" rx="4" fill="#f97316" opacity="0.9"/>
+        <rect x="42" y="12" width="26" height="26" rx="4" fill="#94a3b8" opacity="0.5"/>
+        <rect x="12" y="42" width="26" height="26" rx="4" fill="#94a3b8" opacity="0.35"/>
+        <rect x="42" y="42" width="26" height="26" rx="4" fill="#94a3b8" opacity="0.2"/>
+        <circle cx="25" cy="25" r="5" fill="#fff" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="login-title">アイゼンハワー・マトリックス</div>
+    <div class="login-sub">サインインしてタスクをクラウドに保存。<br>どのデバイスからでもアクセスできます。</div>
+    <button class="ms-btn" onclick="signInMicrosoft()" style="margin-bottom:10px">
+      <svg class="ms-logo" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Microsoft でサインイン（OneDrive保存）
+    </button>
+    <button class="ms-btn google-btn" onclick="signInGoogle()">
+      <svg class="ms-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Google でサインイン（Googleドライブ保存）
+    </button>
+    <div class="login-note" style="margin-top:14px">※ Microsoft → OneDrive、Google → Googleドライブに<br>eisenhower_tasks.json として自動保存されます</div>
+  </div>
+</div>
+
+<!-- Main App (hidden until logged in) -->
+<div id="app-screen" style="display:none;flex-direction:column;height:100vh">
+
+<div class="topbar">
+  <i class="ti ti-layout-grid" style="font-size:18px;color:var(--text-secondary)"></i>
+  <div>
+    <h1>アイゼンハワー・マトリックス</h1>
+    <span class="subtitle">タスクを優先度で整理</span>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-indicator" id="sync-indicator">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">同期済み</span>
+    </div>
+    <button class="icon-btn" id="notif-btn" onclick="toggleNotif()" title="通知設定">
+      <i class="ti ti-bell"></i>
+      <span class="notif-badge" id="notif-badge"></span>
+    </button>
+    <div class="user-chip" onclick="signOut()" title="サインアウト">
+      <div class="user-avatar" id="user-avatar">？</div>
+      <span id="user-name">...</span>
+    </div>
+    <button class="add-btn" onclick="openModal()">
+      <i class="ti ti-plus"></i>タスクを追加
+    </button>
+  </div>
+</div>
+
+<div class="axis-x">
+  <span>← 緊急</span>
+  <span style="color:var(--text-secondary);font-weight:500">― 緊急度 ―</span>
+  <span>緊急でない →</span>
+</div>
+
+<div class="main-area">
+  <div class="axis-y">
+    <span>重要</span>
+    <span style="color:var(--text-secondary)">重要度</span>
+    <span>重要でない</span>
+  </div>
+  <div class="matrix">
+    <div class="quadrant q1" id="q1" ondragover="allowDrop(event)" ondrop="drop(event,'q1')" ondragenter="highlight(this)" ondragleave="unhighlight(this)">
+      <div class="q-header"><div><div class="q-action">重要・緊急 — すぐやる</div></div><span class="q-count" id="count-q1">0</span></div>
+      <div class="q-body" id="body-q1"></div>
+    </div>
+    <div class="quadrant q2" id="q2" ondragover="allowDrop(event)" ondrop="drop(event,'q2')" ondragenter="highlight(this)" ondragleave="unhighlight(this)">
+      <div class="q-header"><div><div class="q-action">重要・緊急でない — 計画する</div></div><span class="q-count" id="count-q2">0</span></div>
+      <div class="q-body" id="body-q2"></div>
+    </div>
+    <div class="quadrant q3" id="q3" ondragover="allowDrop(event)" ondrop="drop(event,'q3')" ondragenter="highlight(this)" ondragleave="unhighlight(this)">
+      <div class="q-header"><div><div class="q-action">重要でない・緊急 — 委任する</div></div><span class="q-count" id="count-q3">0</span></div>
+      <div class="q-body" id="body-q3"></div>
+    </div>
+    <div class="quadrant q4" id="q4" ondragover="allowDrop(event)" ondrop="drop(event,'q4')" ondragenter="highlight(this)" ondragleave="unhighlight(this)">
+      <div class="q-header"><div><div class="q-action">重要でない・緊急でない — 削除</div></div><span class="q-count" id="count-q4">0</span></div>
+      <div class="q-body" id="body-q4"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="legend-item"><div class="legend-dot" style="background:#d85a30"></div>すぐやる</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#378add"></div>計画する</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ba7517"></div>委任する</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>後回し</div>
+  <div class="legend-item" style="margin-left:auto"><i class="ti ti-drag-drop" style="font-size:12px"></i>&nbsp;ドラッグで移動</div>
+</div>
+
+<div class="completed-panel">
+  <div class="completed-header" onclick="toggleCompleted()">
+    <i class="ti ti-circle-check" style="font-size:14px;color:var(--text-muted)"></i>
+    <span class="completed-title">完了済みタスク</span>
+    <span class="completed-count" id="completed-count">0</span>
+    <i class="ti ti-chevron-up completed-toggle" id="completed-toggle"></i>
+  </div>
+  <div class="completed-body" id="completed-body" style="display:none"></div>
+</div>
+
+</div><!-- end app-screen -->
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <h2><i class="ti ti-edit" style="font-size:14px;margin-right:6px;vertical-align:-1px"></i>タスクを編集</h2>
+    <input type="hidden" id="edit-task-id">
+    <div class="form-group"><label>タスク名 *</label><input id="edit-task-input" type="text" onkeydown="if(event.key==='Enter')saveEdit()"></div>
+    <div class="form-group"><label>分類</label>
+      <select id="edit-q-select">
+        <option value="q1">重要・緊急（すぐやる）</option>
+        <option value="q2">重要・緊急でない（計画する）</option>
+        <option value="q3">重要でない・緊急（委任する）</option>
+        <option value="q4">重要でない・緊急でない（削除）</option>
+      </select>
+    </div>
+    <div class="form-group"><label>カテゴリ</label>
+      <select id="edit-cat-select">
+        <option value="work">💼 仕事</option>
+        <option value="private">👤 プライベート</option>
+        <option value="family">👨‍👩‍👧 家族</option>
+        <option value="other">📌 その他</option>
+      </select>
+    </div>
+    <div class="form-group"><label>期日（任意）</label><input id="edit-date-input" type="date"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" style="margin-right:auto;color:#a32d2d;border-color:#f7c1c1" onclick="delFromEdit()">削除</button>
+      <button class="btn-cancel" onclick="document.getElementById('edit-modal').classList.remove('open')">キャンセル</button>
+      <button class="btn-add" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2><i class="ti ti-plus" style="font-size:14px;margin-right:6px;vertical-align:-1px"></i>タスクを追加</h2>
+    <div class="form-group"><label>タスク名 *</label><input id="task-input" type="text" placeholder="例：プレゼン資料を作成する" onkeydown="if(event.key==='Enter')addTask()"></div>
+    <div class="form-group"><label>分類</label>
+      <select id="q-select">
+        <option value="q1">重要・緊急（すぐやる）</option>
+        <option value="q2" selected>重要・緊急でない（計画する）</option>
+        <option value="q3">重要でない・緊急（委任する）</option>
+        <option value="q4">重要でない・緊急でない（削除）</option>
+      </select>
+    </div>
+    <div class="form-group"><label>カテゴリ</label>
+      <select id="cat-select">
+        <option value="work">💼 仕事</option>
+        <option value="private">👤 プライベート</option>
+        <option value="family">👨‍👩‍👧 家族</option>
+        <option value="other">📌 その他</option>
+      </select>
+    </div>
+    <div class="form-group"><label>期日（任意）</label><input id="date-input" type="date"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal').classList.remove('open')">キャンセル</button>
+      <button class="btn-add" onclick="addTask()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <i class="ti ti-info-circle" id="toast-icon"></i>
+  <div><div class="toast-title" id="toast-title"></div><div class="toast-msg" id="toast-msg"></div></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  設定
+// ═══════════════════════════════════════════════
+const MS_CLIENT_ID   = '7c5d0ad2-580e-4abc-8156-518f6fc7798a';
+const G_CLIENT_ID    = '1034960128823-j1ksiafq48d78ncli75ne4se9r1mg91f.apps.googleusercontent.com';
+const MSAL_CDN       = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
+const GAPI_CDN       = 'https://accounts.google.com/gsi/client';
+const MS_SCOPES      = ['Files.ReadWrite','User.Read'];
+const G_SCOPES       = 'https://www.googleapis.com/auth/drive.appdata';
+const ONEDRIVE_FILE  = '/me/drive/special/approot:/eisenhower_tasks.json:/content';
+const GDRIVE_FIELDS  = 'files(id,name)';
+
+let msalInstance = null;
+let msAccessToken = null;
+let gAccessToken  = null;
+let loginProvider = null; // 'ms' | 'google'
+let tasks = [];
+let nextId = 1;
+let dragging = null;
+let saveTimer = null;
+const ONE_DAY = 24*60*60*1000;
+let toastTimer = null;
+
+// ── ライブラリ動的ロード ──
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){ res(); return; }
+    const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  Microsoft (MSAL) 認証
+// ═══════════════════════════════════════════════
+async function signInMicrosoft(){
+  try {
+    await loadScript(MSAL_CDN);
+    msalInstance = new msal.PublicClientApplication({
+      auth:{ clientId:MS_CLIENT_ID, authority:'https://login.microsoftonline.com/common', redirectUri:'http://localhost:8080/eisenhower_matrix.html' },
+      cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:true }
+    });
+    await msalInstance.initialize();
+    await msalInstance.loginRedirect({ scopes: MS_SCOPES });
+  } catch(e){ showToast('error','Microsoftサインイン失敗',e.message); }
+}
+
+async function handleMsRedirect(){
+  try {
+    await loadScript(MSAL_CDN);
+    msalInstance = new msal.PublicClientApplication({
+      auth:{ clientId:MS_CLIENT_ID, authority:'https://login.microsoftonline.com/common', redirectUri:'http://localhost:8080/eisenhower_matrix.html' },
+      cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:true }
+    });
+    await msalInstance.initialize();
+    const resp = await msalInstance.handleRedirectPromise();
+    if(resp){
+      msalInstance.setActiveAccount(resp.account);
+      msAccessToken = resp.accessToken;
+      loginProvider = 'ms';
+      localStorage.setItem('loginProvider','ms');
+      await loadFromOneDrive();
+      showApp('ms', resp.account.name || resp.account.username);
+      return true;
+    }
+    const accounts = msalInstance.getAllAccounts();
+    if(accounts.length > 0){
+      msalInstance.setActiveAccount(accounts[0]);
+      const r = await msalInstance.acquireTokenSilent({ scopes:MS_SCOPES, account:accounts[0] });
+      msAccessToken = r.accessToken;
+      loginProvider = 'ms';
+      localStorage.setItem('loginProvider','ms');
+      await loadFromOneDrive();
+      showApp('ms', accounts[0].name || accounts[0].username);
+      return true;
+    }
+  } catch(e){ console.error('MS redirect error:',e); }
+  return false;
+}
+
+// ═══════════════════════════════════════════════
+//  Google (GSI) 認証
+// ═══════════════════════════════════════════════
+async function signInGoogle(){
+  await loadScript(GAPI_CDN);
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: G_CLIENT_ID,
+    scope: G_SCOPES,
+    callback: async(resp)=>{
+      if(resp.error){ showToast('error','Googleサインイン失敗',resp.error); return; }
+      gAccessToken = resp.access_token;
+      loginProvider = 'google';
+      localStorage.setItem('loginProvider','google');
+      localStorage.setItem('gToken', gAccessToken);
+      // ユーザー情報取得
+      const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+        headers:{Authorization:'Bearer '+gAccessToken}
+      }).then(r=>r.json());
+      await loadFromGoogleDrive();
+      showApp('google', info.name || info.email);
+    }
+  });
+  client.requestAccessToken();
+}
+
+// ═══════════════════════════════════════════════
+//  OneDrive 読み書き（Microsoft）
+// ═══════════════════════════════════════════════
+async function loadFromOneDrive(){
+  setSyncState('syncing','読み込み中...');
+  try {
+    const r = await fetch('https://graph.microsoft.com/v1.0'+ONEDRIVE_FILE,{
+      headers:{Authorization:'Bearer '+msAccessToken}
+    });
+    if(r.status===404){ tasks=[]; }
+    else if(r.ok){ const d=await r.json(); tasks=Array.isArray(d)?d:[]; }
+    else if(r.status===401){
+      const acc=msalInstance.getActiveAccount();
+      const tr=await msalInstance.acquireTokenSilent({scopes:MS_SCOPES,account:acc});
+      msAccessToken=tr.accessToken;
+      return loadFromOneDrive();
+    }
+    nextId=tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1;
+    setSyncState('ok','OneDrive同期済み');
+  } catch(e){ setSyncState('error','読込エラー'); showToast('error','読み込みエラー',e.message); }
+}
+
+async function saveToOneDrive(){
+  setSyncState('syncing','保存中...');
+  try {
+    const r = await fetch('https://graph.microsoft.com/v1.0'+ONEDRIVE_FILE,{
+      method:'PUT',
+      headers:{Authorization:'Bearer '+msAccessToken,'Content-Type':'application/json'},
+      body:JSON.stringify(tasks)
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    setSyncState('ok','OneDrive同期済み');
+  } catch(e){ setSyncState('error','保存エラー'); showToast('error','保存エラー',e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  Googleドライブ 読み書き
+// ═══════════════════════════════════════════════
+const G_FILENAME = 'eisenhower_tasks.json';
+let gFileId = null;
+
+async function gFetch(url, opts={}){
+  opts.headers = Object.assign({ Authorization:'Bearer '+gAccessToken }, opts.headers||{});
+  const r = await fetch(url, opts);
+  if(r.status===401){
+    showToast('error','Googleセッション切れ','再サインインしてください');
+    throw new Error('401');
+  }
+  return r;
+}
+
+async function loadFromGoogleDrive(){
+  setSyncState('syncing','読み込み中...');
+  try {
+    // appDataFolder内のファイル検索
+    const list = await gFetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${G_FILENAME}'&fields=${GDRIVE_FIELDS}`
+    ).then(r=>r.json());
+    if(list.files && list.files.length > 0){
+      gFileId = list.files[0].id;
+      const content = await gFetch(
+        `https://www.googleapis.com/drive/v3/files/${gFileId}?alt=media`
+      ).then(r=>r.json());
+      tasks = Array.isArray(content) ? content : [];
+    } else {
+      tasks = [];
+      gFileId = null;
+    }
+    nextId = tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1;
+    setSyncState('ok','Googleドライブ同期済み');
+  } catch(e){ setSyncState('error','読込エラー'); showToast('error','読み込みエラー',e.message); }
+}
+
+async function saveToGoogleDrive(){
+  setSyncState('syncing','保存中...');
+  try {
+    const body = JSON.stringify(tasks);
+    if(gFileId){
+      // 既存ファイル更新
+      await gFetch(`https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body
+      });
+    } else {
+      // 新規ファイル作成（appDataFolderに保存）
+      const meta = JSON.stringify({name:G_FILENAME, parents:['appDataFolder']});
+      const form = new FormData();
+      form.append('metadata', new Blob([meta],{type:'application/json'}));
+      form.append('file', new Blob([body],{type:'application/json'}));
+      const r = await gFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+        method:'POST', body:form
+      }).then(r=>r.json());
+      gFileId = r.id;
+    }
+    setSyncState('ok','Googleドライブ同期済み');
+  } catch(e){ setSyncState('error','保存エラー'); showToast('error','保存エラー',e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  共通 save / signOut / boot
+// ═══════════════════════════════════════════════
+function save(){
+  clearTimeout(saveTimer);
+  setSyncState('syncing','保存中...');
+  saveTimer = setTimeout(()=>{
+    if(loginProvider==='ms') saveToOneDrive();
+    else if(loginProvider==='google') saveToGoogleDrive();
+    else { try{localStorage.setItem('eisenhower_tasks',JSON.stringify(tasks));}catch(e){} setSyncState('offline','ローカル保存'); }
+  }, 1500);
+}
+
+function signOut(){
+  if(!confirm('サインアウトしますか？')) return;
+  localStorage.removeItem('loginProvider');
+  localStorage.removeItem('gToken');
+  if(loginProvider==='ms' && msalInstance) msalInstance.logoutRedirect();
+  else location.reload();
+}
+
+async function boot(){
+  const provider = localStorage.getItem('loginProvider');
+  if(provider==='ms'){
+    const ok = await handleMsRedirect();
+    if(ok) return;
+  }
+  if(provider==='google'){
+    const token = localStorage.getItem('gToken');
+    if(token){
+      gAccessToken = token;
+      loginProvider = 'google';
+      await loadScript(GAPI_CDN);
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+          headers:{Authorization:'Bearer '+gAccessToken}
+        }).then(r=>r.json());
+        if(info.email){
+          await loadFromGoogleDrive();
+          showApp('google', info.name||info.email);
+          return;
+        }
+      } catch(e){}
+    }
+    // トークン切れ → ログイン画面
+    localStorage.removeItem('loginProvider');
+    localStorage.removeItem('gToken');
+  }
+  // MSリダイレクト処理（初回）
+  await handleMsRedirect();
+}
+
+function showApp(provider, userName){
+  const initials = userName ? userName.charAt(0).toUpperCase() : '?';
+  document.getElementById('user-name').textContent = userName ? userName.split(/[\s@]/)[0] : '';
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-avatar').style.background = provider==='google'?'#ea4335':'#1a73e8';
+  document.getElementById('login-screen').style.display='none';
+  const app=document.getElementById('app-screen');
+  app.style.display='flex';
+  render(); renderCompleted();
+  setTimeout(checkOverdue,1500);
+  setInterval(checkOverdue,60*60*1000);
+}
+
+function saveFallback(){
+  try{localStorage.setItem('eisenhower_tasks',JSON.stringify(tasks));}catch(e){}
+  setSyncState('offline','ローカル保存');
+}
+
+// ── Sync UI ──
+function setSyncState(state, label){
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot' + (state!=='ok'?' '+state:'');
+  lbl.textContent = label;
+}
+
+// ── Toast ──
+function showToast(type, title, msg=''){
+  const el=document.getElementById('toast');
+  const icon=document.getElementById('toast-icon');
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-msg').textContent=msg;
+  icon.className = type==='error'?'ti ti-alert-triangle':type==='info'?'ti ti-info-circle':'ti ti-circle-check';
+  icon.style.color = type==='error'?'#e24b4a':type==='info'?'#378add':'#639922';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),5000);
+}
+
+// ── Overdue 通知 ──
+function getOverdueTasks(){
+  return tasks.filter(t=>t.q==='q1'&&!t.done&&t.createdAt&&(Date.now()-t.createdAt)>=ONE_DAY);
+}
+function hoursAgo(ts){
+  const h=Math.floor((Date.now()-ts)/3600000);
+  return h>=24?`${Math.floor(h/24)}日`:`${h}時間`;
+}
+function checkOverdue(){
+  const ov=getOverdueTasks();
+  document.getElementById('notif-badge').classList.toggle('show',ov.length>0);
+  if(!ov.length)return;
+  const msg=ov.length===1?`「${ov[0].text}」が${hoursAgo(ov[0].createdAt)}放置されています`
+    :`重要・緊急に${ov.length}件が1日以上放置されています`;
+  showToast('error','⚠ 放置タスクあり',msg);
+  if(Notification.permission==='granted') new Notification('アイゼンハワー：放置警告',{body:msg});
+}
+async function toggleNotif(){
+  if(Notification.permission==='default'){
+    const p=await Notification.requestPermission();
+    showToast('info',p==='granted'?'通知を許可しました':'通知が拒否されました');
+  } else { checkOverdue(); }
+}
+
+// ── Render ──
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts){ const d=new Date(ts); return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`; }
+
+function render(){
+  ['q1','q2','q3','q4'].forEach(q=>{
+    const body=document.getElementById('body-'+q);
+    const mine=tasks.filter(t=>t.q===q&&!t.done);
+    document.getElementById('count-'+q).textContent=mine.length;
+    body.innerHTML='';
+    if(!mine.length){ body.innerHTML='<p class="empty">タスクなし</p>'; return; }
+    mine.forEach(t=>{
+      const d=document.createElement('div');
+      const overdue=t.q==='q1'&&t.createdAt&&(Date.now()-t.createdAt)>=ONE_DAY;
+      d.className='task-card'+(overdue?' overdue':'');
+      d.draggable=true;
+      d.addEventListener('dragstart',e=>{ dragging=t.id; e.dataTransfer.effectAllowed='move'; setTimeout(()=>d.classList.add('dragging'),0); });
+      d.addEventListener('dragend',()=>{ d.classList.remove('dragging'); dragging=null; });
+      const dateStr=t.date?`<span class="task-date"><i class="ti ti-calendar" style="font-size:10px"></i>${t.date}</span>`:'';
+      const ovStr=overdue?`<span class="overdue-label"><i class="ti ti-clock" style="font-size:10px"></i>${hoursAgo(t.createdAt)}放置</span>`:'';
+      const catMap={work:'💼 仕事',private:'👤 プライベート',family:'👨‍👩‍👧 家族',other:'📌 その他'};
+      const catClass={work:'cat-work',private:'cat-private',family:'cat-family',other:'cat-other'};
+      const catStr=t.cat?`<span class="cat-badge ${catClass[t.cat]||'cat-other'}">${catMap[t.cat]||t.cat}</span>`:'';
+      d.innerHTML=`
+        <div class="task-info">
+          <div style="display:flex;align-items:flex-start;gap:6px">
+            ${catStr}
+            <div class="task-text">${escapeHtml(t.text)}</div>
+          </div>
+          ${(dateStr||ovStr)?`<div class="task-meta">${dateStr}${ovStr}</div>`:''}
+        </div>
+        <div class="task-actions">
+          <button class="task-btn task-btn-edit" onclick="openEdit(${t.id})"><i class="ti ti-pencil" style="font-size:10px"></i> 編集</button>
+          <button class="task-btn task-btn-complete" onclick="complete(${t.id})"><i class="ti ti-check" style="font-size:10px"></i> 完了</button>
+          <button class="task-btn task-btn-del" onclick="del(${t.id})"><i class="ti ti-trash" style="font-size:10px"></i></button>
+        </div>`;
+      body.appendChild(d);
+    });
+  });
+}
+
+function renderCompleted(){
+  const done=tasks.filter(t=>t.done).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+  document.getElementById('completed-count').textContent=done.length;
+  const body=document.getElementById('completed-body');
+  body.innerHTML='';
+  if(!done.length){ body.innerHTML='<p class="empty">完了済みタスクなし</p>'; return; }
+  const qL={q1:'重要・緊急',q2:'重要・計画',q3:'委任',q4:'後回し'};
+  done.forEach(t=>{
+    const row=document.createElement('div');
+    row.className='completed-row';
+    const cd=t.completedAt?fmtDate(t.completedAt):'';
+    row.innerHTML=`
+      <div class="completed-check"><i class="ti ti-check"></i></div>
+      <div class="completed-info">
+        <div class="completed-text">${escapeHtml(t.text)}</div>
+        <div class="completed-meta">
+          ${cd?`<span class="completed-date"><i class="ti ti-circle-check" style="font-size:10px"></i>完了: ${cd}</span>`:''}
+          ${t.date?`<span class="completed-date"><i class="ti ti-calendar" style="font-size:10px"></i>期日: ${t.date}</span>`:''}
+          <span class="completed-q-badge c${t.q}">${qL[t.q]||t.q}</span>
+        </div>
+      </div>
+      <button class="completed-restore" onclick="restore(${t.id})">↩ 戻す</button>`;
+    body.appendChild(row);
+  });
+}
+
+// ── Actions ──
+function complete(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t)return;
+  t.done=true; t.completedAt=Date.now();
+  save(); render(); renderCompleted();
+  showToast('success','完了しました',`「${t.text}」を完了済みに移動`);
+}
+function del(id){
+  if(!confirm('このタスクを削除しますか？'))return;
+  tasks=tasks.filter(x=>x.id!==id);
+  save(); render(); renderCompleted();
+}
+function restore(id){
+  const t=tasks.find(x=>x.id===id);
+  if(t){ t.done=false; t.completedAt=null; save(); render(); renderCompleted(); }
+}
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t)return;
+  document.getElementById('edit-task-id').value=t.id;
+  document.getElementById('edit-task-input').value=t.text;
+  document.getElementById('edit-q-select').value=t.q;
+  document.getElementById('edit-cat-select').value=t.cat||'work';
+  document.getElementById('edit-date-input').value=t.date||'';
+  document.getElementById('edit-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('edit-task-input').focus(),80);
+}
+function closeEditModal(e){ if(e.target===document.getElementById('edit-modal')) document.getElementById('edit-modal').classList.remove('open'); }
+function saveEdit(){
+  const id=parseInt(document.getElementById('edit-task-id').value);
+  const text=document.getElementById('edit-task-input').value.trim();
+  if(!text){ document.getElementById('edit-task-input').focus(); return; }
+  const t=tasks.find(x=>x.id===id);
+  if(t){ t.text=text; t.q=document.getElementById('edit-q-select').value; t.cat=document.getElementById('edit-cat-select').value; t.date=document.getElementById('edit-date-input').value; save(); render(); renderCompleted(); }
+  document.getElementById('edit-modal').classList.remove('open');
+}
+function delFromEdit(){
+  const id=parseInt(document.getElementById('edit-task-id').value);
+  document.getElementById('edit-modal').classList.remove('open');
+  if(!confirm('このタスクを削除しますか？'))return;
+  tasks=tasks.filter(x=>x.id!==id);
+  save(); render(); renderCompleted();
+}
+function openModal(){
+  document.getElementById('task-input').value='';
+  document.getElementById('date-input').value='';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('task-input').focus(),80);
+}
+function closeModalOutside(e){ if(e.target===document.getElementById('modal')) document.getElementById('modal').classList.remove('open'); }
+function addTask(){
+  const text=document.getElementById('task-input').value.trim();
+  if(!text){ document.getElementById('task-input').focus(); return; }
+  tasks.push({id:nextId++, text, q:document.getElementById('q-select').value, cat:document.getElementById('cat-select').value, date:document.getElementById('date-input').value, done:false, createdAt:Date.now()});
+  save(); render(); renderCompleted();
+  document.getElementById('modal').classList.remove('open');
+}
+
+// ── Drag & Drop ──
+function allowDrop(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; }
+function highlight(el){ el.classList.add('drop-highlight'); }
+function unhighlight(el){ el.classList.remove('drop-highlight'); }
+function drop(e,q){
+  e.preventDefault(); unhighlight(document.getElementById(q));
+  if(dragging===null)return;
+  const t=tasks.find(x=>x.id===dragging);
+  if(t&&t.q!==q){ t.q=q; save(); render(); }
+  dragging=null;
+}
+
+function toggleCompleted(){
+  const body=document.getElementById('completed-body');
+  const icon=document.getElementById('completed-toggle');
+  const open=body.style.display==='none';
+  body.style.display=open?'flex':'none';
+  icon.classList.toggle('open',open);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ document.getElementById('modal').classList.remove('open'); document.getElementById('edit-modal').classList.remove('open'); }
+  if((e.ctrlKey||e.metaKey)&&e.key==='n'){ e.preventDefault(); openModal(); }
+});
+
+boot();
+</script>
+</body>
+</html>
