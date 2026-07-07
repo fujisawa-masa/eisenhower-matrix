@@ -158,6 +158,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toast i{font-size:16px;flex-shrink:0;margin-top:1px}
 .toast-title{font-weight:500;font-size:13px}
 .toast-msg{font-size:11px;color:#94a3b8;margin-top:2px;line-height:1.4}
+/* ── Memo ── */
+.task-memo{font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.form-group textarea{width:100%;padding:8px 11px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-1);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s;resize:vertical;min-height:72px}
+.form-group textarea:focus{border-color:#1a73e8;box-shadow:0 0 0 3px rgba(26,115,232,0.1)}
+.memo-count{font-size:10px;color:var(--text-muted);text-align:right;margin-top:2px}
+/* ── Mobile (スマホ：最大幅767px) ── */
+@media(max-width:767px){
+  body{overflow:auto}
+  .topbar{padding:8px 12px;gap:6px}
+  .topbar h1{font-size:13px}
+  .topbar .subtitle{display:none}
+  .sync-indicator span{display:none}
+  .user-chip span{display:none}
+  .add-btn span{display:none}
+  .add-btn{padding:7px 10px}
+  .axis-x{display:none}
+  .main-area{flex-direction:column;overflow:visible}
+  .axis-y{display:none}
+  .matrix{
+    display:flex;
+    flex-direction:column;
+    overflow:visible;
+    height:auto;
+    flex:none;
+  }
+  .quadrant{
+    min-height:180px;
+    max-height:none;
+    overflow:visible;
+    border-left:none;
+    border-right:none;
+  }
+  .q-body{overflow:visible;max-height:none}
+  .task-actions{opacity:1}
+  .bottom-bar{padding:5px 12px;gap:10px;flex-wrap:wrap}
+  .bottom-bar .legend-item:last-child{display:none}
+  .completed-header{padding:7px 12px}
+  .completed-body{padding:4px 12px 8px}
+  .modal{width:95vw;padding:16px;max-height:90vh;overflow-y:auto}
+  .toast{left:12px;right:12px;max-width:none;bottom:12px}
+}
 </style>
 </head>
 <body>
@@ -302,6 +343,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </select>
     </div>
     <div class="form-group"><label>期日（任意）</label><input id="edit-date-input" type="date"></div>
+    <div class="form-group">
+      <label>メモ（100文字以内・任意）</label>
+      <textarea id="edit-memo-input" maxlength="100" placeholder="補足メモを入力..." oninput="document.getElementById('edit-memo-count').textContent=this.value.length+'/100'"></textarea>
+      <div class="memo-count" id="edit-memo-count">0/100</div>
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" style="margin-right:auto;color:#a32d2d;border-color:#f7c1c1" onclick="delFromEdit()">削除</button>
       <button class="btn-cancel" onclick="document.getElementById('edit-modal').classList.remove('open')">キャンセル</button>
@@ -332,6 +378,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </select>
     </div>
     <div class="form-group"><label>期日（任意）</label><input id="date-input" type="date"></div>
+    <div class="form-group">
+      <label>メモ（100文字以内・任意）</label>
+      <textarea id="memo-input" maxlength="100" placeholder="補足メモを入力..." oninput="document.getElementById('memo-count').textContent=this.value.length+'/100'"></textarea>
+      <div class="memo-count" id="memo-count">0/100</div>
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="document.getElementById('modal').classList.remove('open')">キャンセル</button>
       <button class="btn-add" onclick="addTask()">追加する</button>
@@ -384,7 +435,7 @@ async function signInMicrosoft(){
   try {
     await loadScript(MSAL_CDN);
     msalInstance = new msal.PublicClientApplication({
-      auth:{ clientId:MS_CLIENT_ID, authority:'https://login.microsoftonline.com/common', redirectUri:'http://localhost:8080/eisenhower_matrix.html' },
+      auth:{ clientId:MS_CLIENT_ID, authority:'https://login.microsoftonline.com/common', redirectUri:'https://fujisawa-masa.github.io/eisenhower-matrix/' },
       cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:true }
     });
     await msalInstance.initialize();
@@ -396,7 +447,7 @@ async function handleMsRedirect(){
   try {
     await loadScript(MSAL_CDN);
     msalInstance = new msal.PublicClientApplication({
-      auth:{ clientId:MS_CLIENT_ID, authority:'https://login.microsoftonline.com/common', redirectUri:'http://localhost:8080/eisenhower_matrix.html' },
+      auth:{ clientId:MS_CLIENT_ID, authority:'https://login.microsoftonline.com/common', redirectUri:'https://fujisawa-masa.github.io/eisenhower-matrix/' },
       cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:true }
     });
     await msalInstance.initialize();
@@ -687,12 +738,14 @@ function render(){
       const catMap={work:'💼 仕事',private:'👤 プライベート',family:'👨‍👩‍👧 家族',other:'📌 その他'};
       const catClass={work:'cat-work',private:'cat-private',family:'cat-family',other:'cat-other'};
       const catStr=t.cat?`<span class="cat-badge ${catClass[t.cat]||'cat-other'}">${catMap[t.cat]||t.cat}</span>`:'';
+      const memoStr=t.memo?`<div class="task-memo">${escapeHtml(t.memo)}</div>`:'';
       d.innerHTML=`
         <div class="task-info">
           <div style="display:flex;align-items:flex-start;gap:6px">
             ${catStr}
             <div class="task-text">${escapeHtml(t.text)}</div>
           </div>
+          ${memoStr}
           ${(dateStr||ovStr)?`<div class="task-meta">${dateStr}${ovStr}</div>`:''}
         </div>
         <div class="task-actions">
@@ -756,6 +809,8 @@ function openEdit(id){
   document.getElementById('edit-q-select').value=t.q;
   document.getElementById('edit-cat-select').value=t.cat||'work';
   document.getElementById('edit-date-input').value=t.date||'';
+  document.getElementById('edit-memo-input').value=t.memo||'';
+  document.getElementById('edit-memo-count').textContent=(t.memo||'').length+'/100';
   document.getElementById('edit-modal').classList.add('open');
   setTimeout(()=>document.getElementById('edit-task-input').focus(),80);
 }
@@ -765,7 +820,7 @@ function saveEdit(){
   const text=document.getElementById('edit-task-input').value.trim();
   if(!text){ document.getElementById('edit-task-input').focus(); return; }
   const t=tasks.find(x=>x.id===id);
-  if(t){ t.text=text; t.q=document.getElementById('edit-q-select').value; t.cat=document.getElementById('edit-cat-select').value; t.date=document.getElementById('edit-date-input').value; save(); render(); renderCompleted(); }
+  if(t){ t.text=text; t.q=document.getElementById('edit-q-select').value; t.cat=document.getElementById('edit-cat-select').value; t.date=document.getElementById('edit-date-input').value; t.memo=document.getElementById('edit-memo-input').value.trim(); save(); render(); renderCompleted(); }
   document.getElementById('edit-modal').classList.remove('open');
 }
 function delFromEdit(){
@@ -778,6 +833,8 @@ function delFromEdit(){
 function openModal(){
   document.getElementById('task-input').value='';
   document.getElementById('date-input').value='';
+  document.getElementById('memo-input').value='';
+  document.getElementById('memo-count').textContent='0/100';
   document.getElementById('modal').classList.add('open');
   setTimeout(()=>document.getElementById('task-input').focus(),80);
 }
@@ -785,7 +842,7 @@ function closeModalOutside(e){ if(e.target===document.getElementById('modal')) d
 function addTask(){
   const text=document.getElementById('task-input').value.trim();
   if(!text){ document.getElementById('task-input').focus(); return; }
-  tasks.push({id:nextId++, text, q:document.getElementById('q-select').value, cat:document.getElementById('cat-select').value, date:document.getElementById('date-input').value, done:false, createdAt:Date.now()});
+  tasks.push({id:nextId++, text, q:document.getElementById('q-select').value, cat:document.getElementById('cat-select').value, date:document.getElementById('date-input').value, memo:document.getElementById('memo-input').value.trim(), done:false, createdAt:Date.now()});
   save(); render(); renderCompleted();
   document.getElementById('modal').classList.remove('open');
 }
